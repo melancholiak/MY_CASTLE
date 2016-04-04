@@ -1,0 +1,5 @@
+/home/melancholiac/~/lab2/lab2/obj/x86/Debug/.NETFramework,Version=v4.5.AssemblyAttribute.cs
+/home/melancholiac/~/lab2/lab2/bin/Debug/lab2.exe.mdb
+/home/melancholiac/~/lab2/lab2/bin/Debug/lab2.exe
+/home/melancholiac/~/lab2/lab2/obj/x86/Debug/lab2.exe
+/home/melancholiac/~/lab2/lab2/obj/x86/Debug/lab2.exe.mdb
