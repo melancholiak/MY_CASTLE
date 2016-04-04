@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
@@ -11,14 +11,14 @@ namespace lab2
 		public string author;
 		public string name;
 		public string genre;
-		public string defenition;
-		public book(string name,string author,int year,string genre,string defenition="")
+		public string annotation;
+		public book(string name,string author,int year,string genre,string annotation="")
 		{
 			this.name = name;
 			this.author = author;
 			this.year = year.ToString();
 			this.genre = genre.ToString();
-			this.defenition = defenition;
+			this.annotation = annotation;
 		}
 	}
 	public class HomeLib
@@ -67,50 +67,62 @@ namespace lab2
 			patterns.Add(new Regex(@"(year)\s+(\d+)"));
 			patterns.Add(new Regex(@"(genre)\s+(\S+\s*\S*)"));
 			patterns.Add(new Regex(@"(name)\s+(.*)"));
-			var years = new Regex (@"(years)\s+((\d+)-(\d+))");
-			patterns.Add (years);
-			if(years.IsMatch (order))
-			{
-				int begin=0, end=-1;
-				Int32.TryParse (years.Match (order).Groups [3].Value,out begin);
-				Int32.TryParse (years.Match (order).Groups [4].Value,out end);
-				order.Replace (years.Match (order).Groups [1].Value,"");
-				for (int i = begin; i < end; i++) 
-				{
-					orders.AddRange (this.select(order+"year "+i.ToString()));
-				}
-			}
-			foreach (var regex in patterns) 
-			{
-				if(regex.IsMatch (order)) 
-				{
+			var years = new Regex (@"((years)\s+(\d+)-(\d+))");
+			foreach (var regex in patterns) {
+				if (regex.IsMatch (order)) {
 					var key = regex.Match (order).Groups [1].Value;
 					var val = regex.Match (order).Groups [2].Value;
 					order = order.Replace (key, "");
 					final.Add (key, val);
 				}
 			}
-			foreach (var ord in final.Keys) 
-			{
-				if (this.selector.ContainsKey (ord)&&this.selector [ord].ContainsKey (final [ord]))
-				{
+			foreach (var ord in final.Keys) {
+				if (this.selector.ContainsKey (ord) && this.selector [ord].ContainsKey (final [ord])) {
 					orders.AddRange (this.selector [ord] [final [ord]]);
 					orders = orders.Intersect (this.selector [ord] [final [ord]]).ToList ();
 				}
 			}
 			return orders;
 		}
+		private void premove(List<book> to_remove)
+		{
+			this.pshow_short(to_remove);
+			Console.WriteLine ("are you sure u want to remove these books from your lib\n[y]es ,[n]o");
+			if (Console.ReadKey ().ToString() == "y") 
+			{
+				foreach (var book in to_remove)
+				{
+					this.find_by_author [book.author].Remove (book);
+					this.find_by_genre [book.genre].Remove (book);
+					this.find_by_name [book.name].Remove (book);
+					this.find_by_year [book.year].Remove (book);
+				}
+			}
+		}
+		public void remove(string order)
+		{
+			this.premove (this.select (order));
+		}
+		public void show_all()
+		{
+			List<List<book>> all = this.find_by_name.Values.ToList();
+			foreach(var list in all)
+			{
+				this.pshow_short (list);
+			}
+		}
 		public void show_short(string order)
 		{
-			int num = 1;
+			this.pshow_short (this.select(order));
+		}
+		private void pshow_short(List<book> order_list)
+		{
 			string border = "#"+new string('-',Console.WindowWidth-2)+"#";
-			var order_list = this.select (order);
 			if (order_list.Count > 0) 
 			{
 				Console.WriteLine (border);
 				foreach (book book in order_list) 
 				{
-					Console.WriteLine (String.Format("|{0:^}{1}|",num.ToString(),new string(' ',Console.WindowWidth-2-num++.ToString().Length)));
 					Console.WriteLine (String.Format ("|name : {0}{1}\n|author : {2}{3}\n|year : {4}{5}\n|genre : {6}{7}",
 						book.name, new String (' ', Console.WindowWidth - 9 - book.name.Length) + '|',
 						book.author, new String (' ', Console.WindowWidth - 11 - book.author.Length) + '|',
@@ -119,6 +131,49 @@ namespace lab2
 					Console.WriteLine (border);
 				}
 			}
+			if (order_list.Count == 0) 
+			{
+				Console.WriteLine ("no books found by your order");
+			}
+		}
+		public void greet()
+		{
+			Console.WriteLine ("Very wellcom to your marvelous library\nhow can i serve you?\n" +
+				"available commands:\nremove - remove books bo specific order" +
+				"\nsearch - show book's info by specific order\nshow_all - show alls book's info\nadd - add new book\n" +
+				"help - show lit of commands\n");
+		}
+		public void perform()
+		{
+			string command = Console.ReadLine ();
+			switch (command) 
+			{
+			case "remove":
+				Console.WriteLine ("enter your order\n");
+				this.remove (Console.ReadLine ());
+				break;
+			case "search":
+				Console.WriteLine ("enter your order\n");
+				this.show_short (Console.ReadLine ());
+				break;
+			case "show_all":
+				this.show_all ();
+				break;
+			case "add":
+				string name, author, genre;
+				int year;
+				Console.Write ("\nname: ");name = Console.ReadLine ();
+				Console.Write ("\nauthor: ");author = Console.ReadLine ();
+				Console.Write ("\nhenre: ");genre = Console.ReadLine ();
+				Console.Write ("\nyear: ");Int32.TryParse(Console.ReadLine (),out year);
+				this.add (new book(name,author,year,genre));
+				break;
+			case "help":
+				this.greet ();
+				break;
+			default:
+				break;
+			}
 		}
 	}
 	class MainClass
@@ -126,25 +181,16 @@ namespace lab2
 		public static void Main (string[] args)
 		{
 			var lib = new HomeLib ();
-			lib.add(new book("Animal Farm","George Orwell",1945,"satire",
-				"Animal Farm is an allegorical and dystopian novella by George Orwell, first published in England on 17 August 1945. " +
-				"According to Orwell, the book reflects events leading up to the Russian Revolution of 1917 and then on into the Stalinist" +
-				" era of the Soviet Union.[1] Orwell, a democratic socialist,[2] was a critic of Joseph Stalin and hostile to Moscow-directed" +
-				" Stalinism, an attitude that was critically shaped by his experiences during the Spanish Civil War.[3] The Soviet Union, he " +
-				"believed, had become a brutal dictatorship, built upon a cult of personality and enforced by a reign of terror. In a letter " +
-				"to Yvonne Davet, Orwell described Animal Farm as a satirical tale against Stalin (\"un conte satirique contre Staline\"),[4] " +
-				"and in his essay \"Why I Write\" (1946), wrote that Animal Farm was the first book in which he tried, with full consciousness of " +
-				"what he was doing, \"to fuse political purpose and artistic purpose into one whole\"."));
+			lib.add(new book("Animal Farm","George Orwell",1945,"satire"));
 			lib.add(new book("1984","George Orwell",1948,"sci-fi"));
 			lib.add(new book("Brave New World","Aldous Huxley",1931,"sci-fi"));
 			lib.add(new book("The Call of Cthulhu","Howard Lovecraft",1928,"horror fiction"));
 			lib.add(new book("The Shadow Over Innsmouth","Howard Lovecraft",1936,"horror fiction"));
 			lib.add(new book("Dagon","Howard Lovecraft",1919,"horror fiction"));
+			lib.greet ();
 			while (true) 
 			{
-				var order = Console.ReadLine ();
-				lib.show_short (order);
-
+				lib.perform ();
 			}
 		}
 	}
